@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import modal
+import os
 from retrieval.vector_db import qdrant_client
 from llm.generation import generate_response_stream
 try:

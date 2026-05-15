@@ -16,7 +16,7 @@ boto3
 aioboto3
 
 # Compute (Modal)
-modal==0.64.129
+modal>=0.64.215
 
 # AI Models & LLM (LiteLLM)
 litellm==1.52.0

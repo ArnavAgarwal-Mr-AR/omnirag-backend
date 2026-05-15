@@ -79,6 +79,12 @@ async def health_check():
         compute="modal_ready"
     )
 
+@app.get("/")
+async def root():
+    return {"message": "OmniRAG API is running", "docs": "/docs"}@app.get("/")
+async def root():
+    return {"message": "OmniRAG API is running", "docs": "/docs"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

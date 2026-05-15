@@ -111,20 +111,20 @@ async def ingest_file(
     if modal_available:
         try:
             import modal
-            # We use Function.lookup for more stability in serverless environments
+            # We use from_name for modern Modal SDK compatibility
             if modality == "pdf":
-                f = modal.Function.lookup("omnirag-backend", "DocumentProcessor.process_pdf")
+                f = modal.Function.from_name("omnirag-backend", "DocumentProcessor.process_pdf")
                 await f.remote.aio(b2_file_key)
             elif modality == "image":
-                f = modal.Function.lookup("omnirag-image-processor", "ImageProcessor.process_image")
+                f = modal.Function.from_name("omnirag-image-processor", "ImageProcessor.process_image")
                 await f.remote.aio(b2_file_key)
             elif modality == "audio":
-                f = modal.Function.lookup("omnirag-audio-processor", "AudioProcessor.process_audio")
+                f = modal.Function.from_name("omnirag-audio-processor", "AudioProcessor.process_audio")
                 await f.remote.aio(b2_file_key)
         except Exception as e:
             error_msg = str(e)
             if "'NoneType' object has no attribute '__dict__'" in error_msg:
-                error_msg = "Modal Client Initialization Error. This usually happens if the Modal app is not deployed or tokens are invalid."
+                error_msg = "Modal Client Initialization Error. Verify tokens."
             print(f"Failed to spawn modal job: {error_msg}")
             
     return {

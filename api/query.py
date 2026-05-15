@@ -55,9 +55,9 @@ async def query_endpoint(req: QueryRequest):
 
     try:
         print(f"Embedding query: {req.query}")
-        # We use Function.lookup for more stability in serverless environments
-        f_text = modal.Function.lookup("omnirag-backend", "DocumentProcessor.embed_query")
-        f_image = modal.Function.lookup("omnirag-image-processor", "ImageProcessor.embed_query_for_image")
+        # We use from_name for modern Modal SDK compatibility
+        f_text = modal.Function.from_name("omnirag-backend", "DocumentProcessor.embed_query")
+        f_image = modal.Function.from_name("omnirag-image-processor", "ImageProcessor.embed_query_for_image")
         
         query_vector_text = await f_text.remote.aio(req.query)
         query_vector_image = await f_image.remote.aio(req.query)
@@ -69,7 +69,7 @@ async def query_endpoint(req: QueryRequest):
     except Exception as e:
         error_msg = str(e)
         if "'NoneType' object has no attribute '__dict__'" in error_msg:
-            error_msg = "Modal Client Initialization Error. This usually happens if the Modal app is not deployed or tokens are invalid."
+            error_msg = "Modal Client Initialization Error. Verify tokens."
         print(f"Embedding failed: {error_msg}")
         raise HTTPException(status_code=500, detail=f"Failed to embed query: {error_msg}")
 

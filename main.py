@@ -81,8 +81,6 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    return {"message": "OmniRAG API is running", "docs": "/docs"}@app.get("/")
-async def root():
     return {"message": "OmniRAG API is running", "docs": "/docs"}
 
 if __name__ == "__main__":

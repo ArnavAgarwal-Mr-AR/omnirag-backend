@@ -97,24 +97,35 @@ async def ingest_file(
     await db.commit()
 
     # 3. Spawn Modal Task (Background execution)
+    # 3. Spawn Modal Task (Background execution)
+    if not os.getenv("MODAL_TOKEN_ID") or not os.getenv("MODAL_TOKEN_SECRET"):
+         print("Modal credentials missing. Processing will not start.")
+         return {
+            "job_id": job_id,
+            "document_id": doc_id,
+            "b2_file_key": b2_file_key,
+            "status": "warning",
+            "message": "File uploaded, but Modal credentials are missing in Vercel. Processing skipped."
+        }
+
     if modal_available:
         try:
             import modal
+            # We use Function.lookup for more stability in serverless environments
             if modality == "pdf":
-                processor_cls = modal.Cls.from_name("omnirag-backend", "DocumentProcessor")
-                await processor_cls().process_pdf.remote.aio(b2_file_key)
+                f = modal.Function.lookup("omnirag-backend", "DocumentProcessor.process_pdf")
+                await f.remote.aio(b2_file_key)
             elif modality == "image":
-                img_processor_cls = modal.Cls.from_name("omnirag-image-processor", "ImageProcessor")
-                await img_processor_cls().process_image.remote.aio(b2_file_key)
+                f = modal.Function.lookup("omnirag-image-processor", "ImageProcessor.process_image")
+                await f.remote.aio(b2_file_key)
             elif modality == "audio":
-                audio_processor_cls = modal.Cls.from_name("omnirag-audio-processor", "AudioProcessor")
-                await audio_processor_cls().process_audio.remote.aio(b2_file_key)
-            else:
-                # Add handlers for other modalities here later
-                pass
+                f = modal.Function.lookup("omnirag-audio-processor", "AudioProcessor.process_audio")
+                await f.remote.aio(b2_file_key)
         except Exception as e:
-            print(f"Failed to spawn modal job: {e}")
-            # We don't fail the request, but log it.
+            error_msg = str(e)
+            if "'NoneType' object has no attribute '__dict__'" in error_msg:
+                error_msg = "Modal Client Initialization Error. This usually happens if the Modal app is not deployed or tokens are invalid."
+            print(f"Failed to spawn modal job: {error_msg}")
             
     return {
         "job_id": job_id,

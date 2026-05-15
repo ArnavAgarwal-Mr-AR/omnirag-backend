@@ -50,16 +50,28 @@ async def query_endpoint(req: QueryRequest):
         )
 
     # 1. Embed query via Modal for both Text (BGE) and Image (CLIP)
+    if not os.getenv("MODAL_TOKEN_ID") or not os.getenv("MODAL_TOKEN_SECRET"):
+         raise HTTPException(status_code=500, detail="Modal credentials missing. Please set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET in Vercel.")
+
     try:
         print(f"Embedding query: {req.query}")
-        processor_cls = modal.Cls.from_name("omnirag-backend", "DocumentProcessor")
-        img_processor_cls = modal.Cls.from_name("omnirag-image-processor", "ImageProcessor")
-        query_vector_text = await processor_cls().embed_query.remote.aio(req.query)
-        query_vector_image = await img_processor_cls().embed_query_for_image.remote.aio(req.query)
+        # We use Function.lookup for more stability in serverless environments
+        f_text = modal.Function.lookup("omnirag-backend", "DocumentProcessor.embed_query")
+        f_image = modal.Function.lookup("omnirag-image-processor", "ImageProcessor.embed_query_for_image")
+        
+        query_vector_text = await f_text.remote.aio(req.query)
+        query_vector_image = await f_image.remote.aio(req.query)
+        
+        if query_vector_text is None or query_vector_image is None:
+            raise Exception("Modal returned empty embedding. Check if the Modal app is deployed.")
+            
         print("Embedding successful.")
     except Exception as e:
-        print(f"Embedding failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to embed query: {str(e)}")
+        error_msg = str(e)
+        if "'NoneType' object has no attribute '__dict__'" in error_msg:
+            error_msg = "Modal Client Initialization Error. This usually happens if the Modal app is not deployed or tokens are invalid."
+        print(f"Embedding failed: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Failed to embed query: {error_msg}")
 
     # 2. Search Qdrant Collections (Broad Search)
     broad_results = []

@@ -111,16 +111,16 @@ async def ingest_file(
     if modal_available:
         try:
             import modal
-            # We use from_name for modern Modal SDK compatibility
+            # Corrected: Use Cls.from_name for class methods
             if modality == "pdf":
-                f = modal.Function.from_name("omnirag-backend", "DocumentProcessor.process_pdf")
-                await f.remote.aio(b2_file_key)
+                cls = modal.Cls.from_name("omnirag-backend", "DocumentProcessor")
+                await cls().process_pdf.remote.aio(b2_file_key)
             elif modality == "image":
-                f = modal.Function.from_name("omnirag-image-processor", "ImageProcessor.process_image")
-                await f.remote.aio(b2_file_key)
+                cls = modal.Cls.from_name("omnirag-image-processor", "ImageProcessor")
+                await cls().process_image.remote.aio(b2_file_key)
             elif modality == "audio":
-                f = modal.Function.from_name("omnirag-audio-processor", "AudioProcessor.process_audio")
-                await f.remote.aio(b2_file_key)
+                cls = modal.Cls.from_name("omnirag-audio-processor", "AudioProcessor")
+                await cls().process_audio.remote.aio(b2_file_key)
         except Exception as e:
             error_msg = str(e)
             if "'NoneType' object has no attribute '__dict__'" in error_msg:

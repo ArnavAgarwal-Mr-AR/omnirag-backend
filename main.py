@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
+import logging
+import traceback
 from dotenv import load_dotenv, find_dotenv
 
 # Try to find .env or .env.local in parent directories
@@ -26,11 +29,33 @@ app = FastAPI(
 # CORS config for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for development
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
+
+@app.middleware("http")
+async def catch_exceptions_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        logger.error(f"UNHANDLED EXCEPTION: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "detail": f"Internal Server Error: {str(e)}",
+                "trace": traceback.format_exc() if os.getenv("DEBUG") else None
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
+        )
 
 from retrieval.vector_db import init_collections
 
@@ -78,10 +103,6 @@ async def health_check():
         storage="configured" if os.getenv("B2_ENDPOINT_URL") else "missing",
         compute="modal_ready"
     )
-
-@app.get("/")
-async def root():
-    return {"message": "OmniRAG API is running", "docs": "/docs"}
 
 if __name__ == "__main__":
     import uvicorn

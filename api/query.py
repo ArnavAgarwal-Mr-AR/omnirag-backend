@@ -55,12 +55,12 @@ async def query_endpoint(req: QueryRequest):
 
     try:
         print(f"Embedding query: {req.query}")
-        # We use from_name for modern Modal SDK compatibility
-        f_text = modal.Function.from_name("omnirag-backend", "DocumentProcessor.embed_query")
-        f_image = modal.Function.from_name("omnirag-image-processor", "ImageProcessor.embed_query_for_image")
+        # Use Cls.from_name for modern Modal SDK compatibility
+        cls_text = modal.Cls.from_name("omnirag-backend", "DocumentProcessor")
+        cls_image = modal.Cls.from_name("omnirag-image-processor", "ImageProcessor")
         
-        query_vector_text = await f_text.remote.aio(req.query)
-        query_vector_image = await f_image.remote.aio(req.query)
+        query_vector_text = await cls_text().embed_query.remote.aio(req.query)
+        query_vector_image = await cls_image().embed_query_for_image.remote.aio(req.query)
         
         if query_vector_text is None or query_vector_image is None:
             raise Exception("Modal returned empty embedding. Check if the Modal app is deployed.")
